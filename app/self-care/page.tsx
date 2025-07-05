@@ -396,7 +396,7 @@ export default function SelfCarePage() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-white overflow-x-hidden`}>
+    <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-[#222] overflow-x-hidden`}>
       <div className="container mx-auto px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center justify-between">
@@ -405,12 +405,12 @@ export default function SelfCarePage() {
                 <Target className="w-10 h-10 mr-4 text-purple-400" />
                 Self-Care Arena
               </h1>
-              <p className="text-gray-300 text-lg">Your personalized wellness journey</p>
+              <p className="text-black text-lg">Your personalized wellness journey</p>
             </div>
             <Button
               onClick={resetProgress}
               variant="outline"
-              className="text-white border-white/30 bg-transparent hover:bg-white/10"
+              className="text-black border-black bg-transparent hover:bg-white/10"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset Progress
@@ -457,7 +457,7 @@ export default function SelfCarePage() {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
         >
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
             <CardContent className="p-6 text-center">
               <Flame className="w-12 h-12 mx-auto mb-4 text-orange-400" />
               <h3 className="text-2xl font-bold mb-2">{stats.currentStreak}</h3>
@@ -465,7 +465,7 @@ export default function SelfCarePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
             <CardContent className="p-6 text-center">
               <Award className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
               <h3 className="text-2xl font-bold mb-2">{stats.badges.length}</h3>
@@ -473,7 +473,7 @@ export default function SelfCarePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
             <CardContent className="p-6 text-center">
               <Clock className="w-12 h-12 mx-auto mb-4 text-blue-400" />
               <h3 className="text-2xl font-bold mb-2">{Math.floor(stats.totalTime / 60)}h</h3>
@@ -481,7 +481,7 @@ export default function SelfCarePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
             <CardContent className="p-6 text-center">
               <TrendingUp className="w-12 h-12 mx-auto mb-4 text-green-400" />
               <h3 className="text-2xl font-bold mb-2">{stats.totalSessions}</h3>
@@ -505,7 +505,7 @@ export default function SelfCarePage() {
                   transition={{ delay: index * 0.1 }}
                 >
                   <Card
-                    className={`backdrop-blur-lg border-white/20 text-white transition-all duration-300 cursor-pointer ${
+                    className={`bg-gradient-to-r from-purple-800/40 to-pink-800/40 backdrop-blur-lg border-white/20 text-white transition-all duration-300 cursor-pointer ${
                       activity.completed
                         ? "bg-green-500/20 border-green-500/30"
                         : activity.isActive
@@ -642,7 +642,11 @@ export default function SelfCarePage() {
           transition={{ delay: 0.5 }}
           className="mt-12"
         >
-          <MiniGames />
+          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
+            <CardContent className="p-6">
+              <MiniGames />
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Activity Detail Modal */}

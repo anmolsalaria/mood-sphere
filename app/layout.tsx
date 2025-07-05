@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider } from "@/components/navigation"
 import { MoodProvider } from "@/contexts/mood-context"
+import { MoodBackgroundWrapper } from "@/components/mood-background-wrapper"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -26,7 +27,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <MoodProvider>
-            <SidebarProvider>{children}</SidebarProvider>
+            <SidebarProvider>
+              <MoodBackgroundWrapper>
+                {children}
+              </MoodBackgroundWrapper>
+            </SidebarProvider>
           </MoodProvider>
           <Toaster />
         </ThemeProvider>

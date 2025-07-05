@@ -300,9 +300,11 @@ export default function CommunityPage() {
       <div
         className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} flex items-center justify-center`}
       >
-        <div className="text-white text-center">
-          <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4" />
-          <p className="text-xl">Loading community...</p>
+        <div className="text-center bg-black/70 rounded-lg p-8">
+          <div className="text-white text-center">
+            <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4" />
+            <p className="text-xl text-black">Loading community...</p>
+          </div>
         </div>
       </div>
     )
@@ -310,7 +312,7 @@ export default function CommunityPage() {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-white relative overflow-hidden`}
+      className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-[#222] relative overflow-hidden`}
     >
       {/* Starry Background */}
       <div className="absolute inset-0 opacity-30">
@@ -343,12 +345,12 @@ export default function CommunityPage() {
                 <Users className="w-10 h-10 mr-4 text-purple-400" />
                 Community Support
               </h1>
-              <p className="text-gray-300 text-lg">A safe space for anonymous support and encouragement</p>
+              <p className="text-black text-lg">A safe space for anonymous support and encouragement</p>
             </div>
             <div className="flex space-x-3">
               <Button
                 onClick={refreshPosts}
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-lg border border-white/20"
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-lg border border-black text-black"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
@@ -358,7 +360,7 @@ export default function CommunityPage() {
                 className={`backdrop-blur-lg border transition-all ${
                   showResetConfirm
                     ? "bg-red-500/20 hover:bg-red-500/30 border-red-500/50 text-red-300"
-                    : "bg-white/10 hover:bg-white/20 border-white/20"
+                    : "bg-white/10 hover:bg-white/20 border-black text-black"
                 }`}
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
@@ -402,7 +404,7 @@ export default function CommunityPage() {
           transition={{ delay: 0.1 }}
           className="mb-8"
         >
-          <Card className="bg-blue-500/10 backdrop-blur-lg border-blue-500/20 text-white">
+          <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
             <CardContent className="p-6">
               <div className="flex items-center mb-4">
                 <Shield className="w-6 h-6 mr-3 text-blue-400" />
@@ -434,7 +436,7 @@ export default function CommunityPage() {
             transition={{ delay: 0.2 }}
             className="lg:col-span-2"
           >
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white mb-8">
+            <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <MessageCircle className="w-6 h-6 mr-2 text-purple-400" />
@@ -452,7 +454,7 @@ export default function CommunityPage() {
                         className={`p-3 rounded-lg transition-all flex flex-col items-center space-y-1 ${
                           selectedMood === mood.id
                             ? `bg-gradient-to-r ${mood.color} scale-105 shadow-lg`
-                            : "bg-white/10 hover:bg-white/15"
+                            : "bg-black/60 hover:bg-black/70"
                         }`}
                       >
                         <span className="text-xl">{mood.emoji}</span>
@@ -466,7 +468,7 @@ export default function CommunityPage() {
                   placeholder="Share your thoughts, experiences, or offer support to others..."
                   value={newPost}
                   onChange={(e) => setNewPost(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 min-h-32 resize-none"
+                  className="bg-black/60 border-white/20 text-white placeholder:text-gray-400 min-h-32 resize-none"
                   maxLength={500}
                 />
 
@@ -487,7 +489,7 @@ export default function CommunityPage() {
             {/* Community Posts */}
             <div className="space-y-6">
               {posts.length === 0 ? (
-                <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+                <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
                   <CardContent className="p-12 text-center">
                     <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-xl font-semibold mb-2">No posts yet</h3>
@@ -502,7 +504,7 @@ export default function CommunityPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + index * 0.1 }}
                   >
-                    <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white hover:bg-white/15 transition-all">
+                    <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white hover:bg-black/70 transition-all">
                       <CardContent className="p-6">
                         <div className="flex items-start space-x-4">
                           <Avatar className={`w-12 h-12 bg-gradient-to-r ${getMoodColor(post.mood)}`}>
@@ -574,7 +576,7 @@ export default function CommunityPage() {
             transition={{ delay: 0.4 }}
             className="space-y-6"
           >
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+            <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -605,7 +607,7 @@ export default function CommunityPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+            <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
               <CardHeader>
                 <CardTitle>Trending Topics</CardTitle>
               </CardHeader>

@@ -7,7 +7,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Home, BookOpen, Target, Users, BarChart3, Menu, X, Brain, Info } from "lucide-react"
+import { Home, BookOpen, Target, Users, BarChart3, Menu, X, Brain, Info, MessageCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/self-care", label: "Self-Care Arena", icon: Target },
   { href: "/community", label: "Community", icon: Users },
   { href: "/insights", label: "Insights", icon: BarChart3 },
+  { href: "/ai-wellness-assistant", label: "AI Assistant", icon: MessageCircle },
   { href: "/about", label: "About", icon: Info },
 ]
 

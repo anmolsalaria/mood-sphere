@@ -605,7 +605,7 @@ export function MoodAssessment({ onComplete, onBack }: MoodAssessmentProps) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto">
-      <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+      <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-black">
         <CardHeader>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
@@ -613,7 +613,7 @@ export function MoodAssessment({ onComplete, onBack }: MoodAssessmentProps) {
                 onClick={toggleAudio}
                 variant="outline"
                 size="sm"
-                className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                className="border-black text-black hover:bg-black/10 bg-transparent"
               >
                 {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </Button>
@@ -622,19 +622,19 @@ export function MoodAssessment({ onComplete, onBack }: MoodAssessmentProps) {
                   onClick={isPlaying ? stopSpeech : playCurrentQuestion}
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                  className="border-black text-black hover:bg-black/10 bg-transparent"
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </Button>
               )}
             </div>
-            <Badge variant="secondary" className="bg-white/20 text-white">
+            <Badge variant="secondary" className="bg-white/20 text-black border border-black">
               {currentQuestionIndex + 1} of {Math.min(selectedQuestions.length, 5)}
             </Badge>
           </div>
           <Progress value={progress} className="mb-4" />
-          <CardTitle className="text-xl">{currentQuestion.text}</CardTitle>
-          <p className="text-sm text-gray-300">{currentQuestion.category}</p>
+          <CardTitle className="text-xl text-black">{currentQuestion.text}</CardTitle>
+          <p className="text-sm text-black">{currentQuestion.category}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <AnimatePresence mode="wait">
@@ -652,7 +652,7 @@ export function MoodAssessment({ onComplete, onBack }: MoodAssessmentProps) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => handleAnswer(index)}
-                  className="w-full p-4 text-left rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 border border-white/10 hover:border-white/30"
+                  className="w-full p-4 text-left rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 border border-white/10 hover:border-white/30 text-black"
                 >
                   <div className="flex items-center space-x-3">
                     <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm font-medium">
@@ -670,7 +670,7 @@ export function MoodAssessment({ onComplete, onBack }: MoodAssessmentProps) {
               onClick={handlePrevious}
               disabled={currentQuestionIndex === 0}
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50 bg-transparent"
+              className="border-black text-black hover:bg-black/10 disabled:opacity-50 bg-transparent"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Previous
@@ -678,7 +678,7 @@ export function MoodAssessment({ onComplete, onBack }: MoodAssessmentProps) {
             <Button
               onClick={onBack}
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+              className="border-black text-black hover:bg-black/10 bg-transparent"
             >
               Back to Selection
             </Button>

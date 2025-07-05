@@ -79,6 +79,9 @@ const moodEmojis = {
 
 export default function InsightsPage() {
   const { currentMood, getMoodBackground } = useMood()
+  // Store journal and activity data in state for persistence
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
+  const [activityProgress, setActivityProgress] = useState<ActivityProgress>({})
   const [insightData, setInsightData] = useState<InsightData>({
     totalEntries: 0,
     weeklyEntries: 0,
@@ -93,40 +96,30 @@ export default function InsightsPage() {
   })
   const [isLoading, setIsLoading] = useState(true)
 
+  // Load data from localStorage
   const loadInsightData = () => {
     setIsLoading(true)
+    const loadedJournal: JournalEntry[] = JSON.parse(localStorage.getItem("moodJournalEntries") || "[]")
+    const loadedActivity: ActivityProgress = JSON.parse(localStorage.getItem("selfCareProgress") || "{}")
+    setJournalEntries(loadedJournal)
+    setActivityProgress(loadedActivity)
 
-    // Load journal data
-    const journalEntries: JournalEntry[] = JSON.parse(localStorage.getItem("moodJournalEntries") || "[]")
-
-    // Load activity data
-    const activityProgress: ActivityProgress = JSON.parse(localStorage.getItem("selfCareProgress") || "{}")
-
-    // Calculate journal insights
+    // Calculate journal insights (existing logic, but use loadedJournal/loadedActivity)
     const now = new Date()
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-
-    const weeklyEntries = journalEntries.filter((entry) => new Date(entry.date) >= oneWeekAgo).length
-
-    // Calculate mood distribution
+    const weeklyEntries = loadedJournal.filter((entry) => new Date(entry.date) >= oneWeekAgo).length
     const moodDistribution: { [key: string]: number } = {}
-    journalEntries.forEach((entry) => {
+    loadedJournal.forEach((entry) => {
       moodDistribution[entry.mood] = (moodDistribution[entry.mood] || 0) + 1
     })
-
-    // Calculate streak
     let currentStreak = 0
     let longestStreak = 0
     let tempStreak = 0
-
-    const sortedEntries = journalEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
+    const sortedEntries = loadedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     const uniqueDates = [...new Set(sortedEntries.map((entry) => entry.date.split("T")[0]))]
-
     for (let i = 0; i < uniqueDates.length; i++) {
       const currentDate = new Date(uniqueDates[i])
       const expectedDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-
       if (currentDate.toDateString() === expectedDate.toDateString()) {
         tempStreak++
         if (i === 0) currentStreak = tempStreak
@@ -137,54 +130,44 @@ export default function InsightsPage() {
       }
     }
     longestStreak = Math.max(longestStreak, tempStreak)
-
-    // Generate weekly mood data
     const weeklyMoodData = []
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-      const dayEntries = journalEntries.filter((entry) => new Date(entry.date).toDateString() === date.toDateString())
-
+      const dayEntries = loadedJournal.filter((entry) => new Date(entry.date).toDateString() === date.toDateString())
       const dayMoods = { happy: 0, calm: 0, anxious: 0, stressed: 0, sad: 0, neutral: 0 }
       dayEntries.forEach((entry) => {
         if (dayMoods.hasOwnProperty(entry.mood)) {
           dayMoods[entry.mood as keyof typeof dayMoods]++
         }
       })
-
       weeklyMoodData.push({
         day: days[date.getDay()],
         ...dayMoods,
       })
     }
-
-    // Calculate activity insights
-    const totalActivities = Object.keys(activityProgress).length
-    const completedToday = Object.values(activityProgress).filter(
+    const totalActivities = Object.keys(loadedActivity).length
+    const completedToday = Object.values(loadedActivity).filter(
       (activity) => activity.completed && activity.lastCompleted === new Date().toDateString(),
     ).length
-
-    const totalTime = Object.values(activityProgress).reduce((sum, activity) => sum + (activity.totalTime || 0), 0)
-    const totalSessions = Object.values(activityProgress).reduce(
+    const totalTime = Object.values(loadedActivity).reduce((sum, activity) => sum + (activity.totalTime || 0), 0)
+    const totalSessions = Object.values(loadedActivity).reduce(
       (sum, activity) => sum + (activity.totalSessions || 0),
       0,
     )
     const averageSessionTime = totalSessions > 0 ? Math.round(totalTime / totalSessions) : 0
-
     setInsightData({
-      totalEntries: journalEntries.length,
+      totalEntries: loadedJournal.length,
       weeklyEntries,
       currentStreak,
       longestStreak,
       moodDistribution,
       weeklyMoodData,
-      activityStats: activityProgress,
+      activityStats: loadedActivity,
       totalActivities,
       completedToday,
       averageSessionTime,
     })
-
     setIsLoading(false)
   }
 
@@ -192,10 +175,29 @@ export default function InsightsPage() {
     loadInsightData()
   }, [])
 
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem("moodJournalEntries", JSON.stringify(journalEntries))
+      localStorage.setItem("selfCareProgress", JSON.stringify(activityProgress))
+    }
+  }, [isLoading, journalEntries, activityProgress])
+
+  // Add a Reset button to clear all data
+  const handleReset = () => {
+    if (window.confirm("Are you sure you want to reset all insights and progress? This cannot be undone.")) {
+      localStorage.removeItem("moodJournalEntries")
+      localStorage.removeItem("selfCareProgress")
+      setJournalEntries([])
+      setActivityProgress({})
+      loadInsightData()
+    }
+  }
+
   const getMostCommonMood = () => {
     const moods = Object.entries(insightData.moodDistribution)
     if (moods.length === 0) return "neutral"
-    return moods.reduce((a, b) => (a[1] > b[1] ? a : b))[0]
+    return moods.reduce((a, b) => (Number(a[1]) > Number(b[1]) ? a : b))[0]
   }
 
   const getImprovementPercentage = () => {
@@ -214,16 +216,18 @@ export default function InsightsPage() {
       <div
         className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-white flex items-center justify-center`}
       >
-        <div className="text-center">
-          <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-purple-400" />
-          <p className="text-lg">Loading your insights...</p>
+        <div className="text-center bg-black/70 rounded-lg p-8">
+          <div className="text-center">
+            <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-purple-400" />
+            <p className="text-lg text-black">Loading your insights...</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-white overflow-x-hidden`}>
+    <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-[#222] overflow-x-hidden`}>
       <div className="container mx-auto px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex justify-between items-center">
@@ -232,15 +236,23 @@ export default function InsightsPage() {
                 <BarChart3 className="w-10 h-10 mr-4 text-purple-400" />
                 Insights & Analytics
               </h1>
-              <p className="text-gray-300 text-lg">Track your mental wellness journey with personalized insights</p>
+              <p className="text-black text-lg">Track your mental wellness journey with personalized insights</p>
             </div>
             <Button
               onClick={loadInsightData}
               variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              className="bg-white/10 border-black text-black hover:bg-white/20"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data
+            </Button>
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              className="bg-white/10 border-black text-black hover:bg-white/20 ml-4"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset Insights
             </Button>
           </div>
         </motion.div>
@@ -300,7 +312,7 @@ export default function InsightsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Mood Trends */}
           <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+            <Card className="bg-gradient-to-r from-purple-800/40 to-pink-800/40 backdrop-blur-lg border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Brain className="w-6 h-6 mr-2 text-purple-400" />
@@ -373,7 +385,7 @@ export default function InsightsPage() {
 
           {/* Mood Distribution */}
           <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-            <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+            <Card className="bg-gradient-to-r from-purple-800/40 to-pink-800/40 backdrop-blur-lg border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Heart className="w-6 h-6 mr-2 text-pink-400" />
@@ -430,7 +442,7 @@ export default function InsightsPage() {
           transition={{ delay: 0.4 }}
           className="mt-8"
         >
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+          <Card className="bg-gradient-to-r from-purple-800/40 to-pink-800/40 backdrop-blur-lg border-white/20 text-white">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Brain className="w-6 h-6 mr-2 text-purple-400" />

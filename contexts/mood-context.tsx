@@ -10,6 +10,7 @@ interface MoodContextType {
   setCurrentMood: (mood: MoodType) => void
   getMoodBackground: (mood: MoodType) => string
   getMoodGradient: (mood: MoodType) => string
+  getMoodTextColor: (mood: MoodType) => string
 }
 
 const MoodContext = createContext<MoodContextType | undefined>(undefined)
@@ -69,6 +70,22 @@ export function MoodProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Get text color based on mood background for readability
+  const getMoodTextColor = (mood: MoodType) => {
+    switch (mood) {
+      case "happy":
+      case "neutral":
+      case "stressed":
+      case "anxious":
+        return "text-black" // pure black for maximum contrast on light backgrounds
+      case "calm":
+      case "sad":
+        return "text-white" // white text for blue/purple backgrounds
+      default:
+        return "text-black"
+    }
+  }
+
   return (
     <MoodContext.Provider
       value={{
@@ -76,6 +93,7 @@ export function MoodProvider({ children }: { children: React.ReactNode }) {
         setCurrentMood,
         getMoodBackground,
         getMoodGradient,
+        getMoodTextColor,
       }}
     >
       {children}
