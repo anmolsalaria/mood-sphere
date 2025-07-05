@@ -58,10 +58,8 @@ export default function AIWellnessAssistantPage() {
     setError(null)
 
     try {
-      // Try production backend first, fallback to localhost for development
-      const backendUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://your-railway-app.railway.app/chat'  // Replace with your actual Railway URL
-        : 'http://localhost:8000/chat'
+      // Use the Next.js API route for both local and production
+      const backendUrl = '/api/ai-assistant';
       
       const response = await fetch(backendUrl, {
         method: "POST",
