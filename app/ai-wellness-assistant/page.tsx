@@ -199,7 +199,7 @@ export default function AIWellnessAssistantPage() {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask me about health, wellness, or any medical questions..."
-                  className="flex-1"
+                  className="flex-1 text-black"
                   disabled={isLoading}
                 />
                 <Button
