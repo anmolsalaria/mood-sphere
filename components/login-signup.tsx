@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Mail, Lock, Eye, EyeOff, X, LogIn, UserPlus, User } from "lucide-react"
-import { auth, googleProvider } from "@/lib/firebase"
+import { auth, googleProvider } from "../lib/firebase"
 import { signInWithPopup } from "firebase/auth"
 import { usePathname, useRouter } from "next/navigation"
 
