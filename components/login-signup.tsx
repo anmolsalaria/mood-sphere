@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Mail, Lock, Eye, EyeOff, X, LogIn, UserPlus, User } from "lucide-react"
+import { auth, googleProvider } from "@/lib/firebase"
+import { signInWithPopup } from "firebase/auth"
+import { usePathname, useRouter } from "next/navigation"
 
 interface UserInterface {
   id: string
@@ -18,7 +21,9 @@ interface UserInterface {
 }
 
 export function LoginSignup() {
-  const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  const [isOpen, setIsOpen] = useState(pathname === "/login")
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<UserInterface | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -53,10 +58,11 @@ export function LoginSignup() {
       setCurrentUser(user)
       setIsLoggedIn(true)
       setIsOpen(false)
-      setIsLoading(false)
-
       // Store in localStorage for persistence
       localStorage.setItem("moodsphere_user", JSON.stringify(user))
+      showSuccessMessage("Signed in successfully")
+      router.push("/")
+      setIsLoading(false)
     }, 1500)
   }
 
@@ -80,10 +86,11 @@ export function LoginSignup() {
       setCurrentUser(user)
       setIsLoggedIn(true)
       setIsOpen(false)
-      setIsLoading(false)
-
       // Store in localStorage for persistence
       localStorage.setItem("moodsphere_user", JSON.stringify(user))
+      showSuccessMessage("Signed in successfully")
+      router.push("/")
+      setIsLoading(false)
     }, 1500)
   }
 
@@ -111,11 +118,51 @@ export function LoginSignup() {
     }
   }, [])
 
+  // Add this function for Google sign-in
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
+      setCurrentUser({
+        id: user.uid,
+        email: user.email || "",
+        name: user.displayName || user.email?.split("@")[0] || "User",
+      })
+      setIsLoggedIn(true)
+      setIsOpen(false)
+      localStorage.setItem("moodsphere_user", JSON.stringify({
+        id: user.uid,
+        email: user.email || "",
+        name: user.displayName || user.email?.split("@")[0] || "User",
+      }))
+      showSuccessMessage("Signed in successfully")
+      router.push("/")
+    } catch (error) {
+      alert("Google sign-in failed. Please try again.")
+    }
+    setIsLoading(false)
+  }
+
+  // Add this function to show a popup message
+  const showSuccessMessage = (message: string) => {
+    const successMessage = document.createElement("div")
+    successMessage.className =
+      "fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse"
+    successMessage.textContent = message
+    document.body.appendChild(successMessage)
+    setTimeout(() => {
+      if (document.body.contains(successMessage)) {
+        document.body.removeChild(successMessage)
+      }
+    }, 3000)
+  }
+
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className={pathname === "/login" ? "flex items-center justify-center min-h-screen" : "fixed top-4 right-4 z-50"}>
       {!isLoggedIn ? (
         <>
-          {!isOpen ? (
+          {(!isOpen && pathname !== "/login") ? (
             // Login Button
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
@@ -127,7 +174,7 @@ export function LoginSignup() {
               </Button>
             </motion.div>
           ) : (
-            // Login/Signup Modal
+            // Login/Signup Modal or Full Page
             <AnimatePresence>
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, y: -20 }}
@@ -139,14 +186,16 @@ export function LoginSignup() {
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-xl text-slate-800">Welcome to MoodSphere</CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsOpen(false)}
-                        className="w-6 h-6 text-slate-500 hover:text-slate-700"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      {pathname !== "/login" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setIsOpen(false)}
+                          className="w-6 h-6 text-slate-500 hover:text-slate-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
 
@@ -203,6 +252,16 @@ export function LoginSignup() {
                               </Button>
                             </div>
                           </div>
+
+                          <Button
+                            type="button"
+                            className="w-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2"
+                            onClick={handleGoogleSignIn}
+                            disabled={isLoading}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M44.5 20H24v8.5h11.7C34.7 33.1 29.8 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.1 8.1 3l6.1-6.1C34.5 5.5 29.6 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.4-.1-2.7-.3-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15.2 17.1 19.2 14 24 14c3.1 0 5.9 1.1 8.1 3l6.1-6.1C34.5 5.5 29.6 3.5 24 3.5c-6.6 0-12 5.4-12 12 0 2.1.5 4.1 1.3 5.9z"/><path fill="#FBBC05" d="M24 44.5c5.8 0 10.7-2.1 14.6-5.7l-6.7-5.5c-2 1.4-4.5 2.2-7.9 2.2-5.8 0-10.7-3.9-12.5-9.2l-7 5.4C7.5 41.1 15.2 44.5 24 44.5z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.7c-1.1 3.1-4.1 5.5-7.7 5.5-2.2 0-4.2-.7-5.7-2.1l-7 5.4C15.2 41.1 19.2 44.5 24 44.5c6.6 0 12-5.4 12-12 0-1.4-.1-2.7-.3-4z"/></g></svg>
+                            Continue with Google
+                          </Button>
 
                           <Button
                             type="submit"

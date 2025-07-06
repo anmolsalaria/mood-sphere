@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { useMood } from "@/contexts/mood-context"
 import { MiniGames } from "@/components/mini-games"
+import RequireAuth from "@/components/require-auth"
 
 interface Activity {
   id: number
@@ -396,327 +397,329 @@ export default function SelfCarePage() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-[#222] overflow-x-hidden`}>
-      <div className="container mx-auto px-6 py-8">
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold mb-4 flex items-center">
-                <Target className="w-10 h-10 mr-4 text-purple-400" />
-                Self-Care Arena
-              </h1>
-              <p className="text-black text-lg">Your personalized wellness journey</p>
+    <RequireAuth>
+      <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-[#222] overflow-x-hidden`}>
+        <div className="container mx-auto px-6 py-8">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold mb-4 flex items-center">
+                  <Target className="w-10 h-10 mr-4 text-purple-400" />
+                  Self-Care Arena
+                </h1>
+                <p className="text-black text-lg">Your personalized wellness journey</p>
+              </div>
+              <Button
+                onClick={resetProgress}
+                variant="outline"
+                className="text-black border-black bg-transparent hover:bg-white/10"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset Progress
+              </Button>
             </div>
-            <Button
-              onClick={resetProgress}
-              variant="outline"
-              className="text-black border-black bg-transparent hover:bg-white/10"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset Progress
-            </Button>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Progress Overview */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2">Today's Progress</h2>
-                  <p className="text-gray-300">Keep up the great work!</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-4xl font-bold text-purple-400">
-                    {completedToday}/{totalActivities}
-                  </div>
-                  <div className="text-gray-300">Activities</div>
-                </div>
-              </div>
-
-              <Progress value={progressPercentage} className="h-3 mb-4" />
-
-              <div className="flex justify-between text-sm text-gray-300">
-                <span>{Math.round(progressPercentage)}% Complete</span>
-                <span>{totalActivities - completedToday} remaining</span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
-        >
-          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
-            <CardContent className="p-6 text-center">
-              <Flame className="w-12 h-12 mx-auto mb-4 text-orange-400" />
-              <h3 className="text-2xl font-bold mb-2">{stats.currentStreak}</h3>
-              <p className="text-gray-300">Current Streak</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
-            <CardContent className="p-6 text-center">
-              <Award className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-              <h3 className="text-2xl font-bold mb-2">{stats.badges.length}</h3>
-              <p className="text-gray-300">Badges Earned</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
-            <CardContent className="p-6 text-center">
-              <Clock className="w-12 h-12 mx-auto mb-4 text-blue-400" />
-              <h3 className="text-2xl font-bold mb-2">{Math.floor(stats.totalTime / 60)}h</h3>
-              <p className="text-gray-300">Total Time</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
-            <CardContent className="p-6 text-center">
-              <TrendingUp className="w-12 h-12 mx-auto mb-4 text-green-400" />
-              <h3 className="text-2xl font-bold mb-2">{stats.totalSessions}</h3>
-              <p className="text-gray-300">Total Sessions</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Activities List */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <h2 className="text-2xl font-bold mb-6">Daily Activities</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {activities.map((activity, index) => {
-              const Icon = activity.icon
-
-              return (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card
-                    className={`bg-gradient-to-r from-purple-800/40 to-pink-800/40 backdrop-blur-lg border-white/20 text-white transition-all duration-300 cursor-pointer ${
-                      activity.completed
-                        ? "bg-green-500/20 border-green-500/30"
-                        : activity.isActive
-                          ? "bg-blue-500/20 border-blue-500/30"
-                          : "bg-white/10 hover:bg-white/15"
-                    }`}
-                    onClick={() => showActivityDetails(activity)}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`p-3 rounded-full ${
-                              activity.completed ? "bg-green-500" : activity.isActive ? "bg-blue-500" : "bg-purple-500"
-                            }`}
-                          >
-                            <Icon className="w-6 h-6 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold">{activity.title}</h3>
-                            <p className="text-gray-300 text-sm">{activity.duration} minutes</p>
-                            <Badge variant="outline" className="mt-1 text-xs border-white/30 text-gray-300">
-                              {activity.category}
-                            </Badge>
-                          </div>
-                        </div>
-
-                        {activity.completed && <CheckCircle className="w-6 h-6 text-green-400" />}
-                      </div>
-
-                      {/* Timer Display */}
-                      {activity.isActive && activity.timeRemaining > 0 && (
-                        <div className="mb-4 p-3 bg-blue-500/20 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <span className="text-blue-300 font-mono text-lg">
-                              {formatTime(activity.timeRemaining)}
-                            </span>
-                            <div className="flex space-x-2">
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  pauseActivity(activity.id)
-                                }}
-                                size="sm"
-                                variant="outline"
-                                className="border-blue-400 text-blue-400 hover:bg-blue-500/20"
-                              >
-                                {activity.isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                              </Button>
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  stopActivity(activity.id)
-                                }}
-                                size="sm"
-                                variant="outline"
-                                className="border-red-400 text-red-400 hover:bg-red-500/20"
-                              >
-                                <Square className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <Progress
-                            value={((activity.duration * 60 - activity.timeRemaining) / (activity.duration * 60)) * 100}
-                            className="h-2 mt-2"
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Flame className="w-4 h-4 text-orange-400" />
-                          <span className="text-sm text-gray-300">{activity.streak} day streak</span>
-                        </div>
-
-                        {!activity.completed && !activity.isActive && (
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              startActivity(activity.id)
-                            }}
-                            size="sm"
-                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                          >
-                            <Play className="w-4 h-4 mr-2" />
-                            Start
-                          </Button>
-                        )}
-
-                        {activity.completed && (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Completed</Badge>
-                        )}
-
-                        {activity.isActive && (
-                          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                            {activity.isPaused ? "Paused" : "Active"}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )
-            })}
-          </div>
-        </motion.div>
-
-        {/* Achievement Badges */}
-        {stats.badges.length > 0 && (
+          {/* Progress Overview */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-12"
+            transition={{ delay: 0.1 }}
+            className="mb-8"
           >
-            <h2 className="text-2xl font-bold mb-6">Your Achievements</h2>
-            <div className="flex flex-wrap gap-4">
-              {stats.badges.map((badge, index) => (
-                <Badge
-                  key={index}
-                  className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 px-4 py-2 text-base"
-                >
-                  {getBadgeEmoji(badge)} {badge}
-                </Badge>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Mini Games Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12"
-        >
-          <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
-            <CardContent className="p-6">
-              <MiniGames />
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Activity Detail Modal */}
-        {showActivityDetail && selectedActivity && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="bg-gray-900 max-w-md w-full border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-3 rounded-full bg-purple-500">
-                      <selectedActivity.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{selectedActivity.title}</h3>
-                      <p className="text-gray-400">{selectedActivity.duration} minutes</p>
-                    </div>
+            <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-3xl font-bold mb-2">Today's Progress</h2>
+                    <p className="text-gray-300">Keep up the great work!</p>
                   </div>
-                  <Button onClick={() => setShowActivityDetail(false)} variant="ghost" size="sm" className="text-white">
-                    ×
-                  </Button>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold text-purple-400">
+                      {completedToday}/{totalActivities}
+                    </div>
+                    <div className="text-gray-300">Activities</div>
+                  </div>
                 </div>
 
-                <div className="space-y-4 text-white">
-                  <div>
-                    <h4 className="font-semibold mb-2">Description</h4>
-                    <p className="text-gray-300">{selectedActivity.description}</p>
-                  </div>
+                <Progress value={progressPercentage} className="h-3 mb-4" />
 
-                  <div>
-                    <h4 className="font-semibold mb-2">Benefits</h4>
-                    <ul className="list-disc list-inside text-gray-300 space-y-1">
-                      {selectedActivity.benefits.map((benefit, index) => (
-                        <li key={index}>{benefit}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-white/20">
-                    <div className="flex items-center space-x-2">
-                      <Flame className="w-4 h-4 text-orange-400" />
-                      <span className="text-sm text-gray-300">{selectedActivity.streak} day streak</span>
-                    </div>
-
-                    {!selectedActivity.completed && !selectedActivity.isActive && (
-                      <Button
-                        onClick={() => {
-                          startActivity(selectedActivity.id)
-                          setShowActivityDetail(false)
-                        }}
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Start Activity
-                      </Button>
-                    )}
-
-                    {selectedActivity.completed && (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Completed Today</Badge>
-                    )}
-
-                    {selectedActivity.isActive && (
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Currently Active</Badge>
-                    )}
-                  </div>
+                <div className="flex justify-between text-sm text-gray-300">
+                  <span>{Math.round(progressPercentage)}% Complete</span>
+                  <span>{totalActivities - completedToday} remaining</span>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+          </motion.div>
+
+          {/* Stats Cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
+          >
+            <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
+              <CardContent className="p-6 text-center">
+                <Flame className="w-12 h-12 mx-auto mb-4 text-orange-400" />
+                <h3 className="text-2xl font-bold mb-2">{stats.currentStreak}</h3>
+                <p className="text-gray-300">Current Streak</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
+              <CardContent className="p-6 text-center">
+                <Award className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+                <h3 className="text-2xl font-bold mb-2">{stats.badges.length}</h3>
+                <p className="text-gray-300">Badges Earned</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
+              <CardContent className="p-6 text-center">
+                <Clock className="w-12 h-12 mx-auto mb-4 text-blue-400" />
+                <h3 className="text-2xl font-bold mb-2">{Math.floor(stats.totalTime / 60)}h</h3>
+                <p className="text-gray-300">Total Time</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
+              <CardContent className="p-6 text-center">
+                <TrendingUp className="w-12 h-12 mx-auto mb-4 text-green-400" />
+                <h3 className="text-2xl font-bold mb-2">{stats.totalSessions}</h3>
+                <p className="text-gray-300">Total Sessions</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Activities List */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <h2 className="text-2xl font-bold mb-6">Daily Activities</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {activities.map((activity, index) => {
+                const Icon = activity.icon
+
+                return (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card
+                      className={`bg-gradient-to-r from-purple-800/40 to-pink-800/40 backdrop-blur-lg border-white/20 text-white transition-all duration-300 cursor-pointer ${
+                        activity.completed
+                          ? "bg-green-500/20 border-green-500/30"
+                          : activity.isActive
+                            ? "bg-blue-500/20 border-blue-500/30"
+                            : "bg-white/10 hover:bg-white/15"
+                      }`}
+                      onClick={() => showActivityDetails(activity)}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={`p-3 rounded-full ${
+                                activity.completed ? "bg-green-500" : activity.isActive ? "bg-blue-500" : "bg-purple-500"
+                              }`}
+                            >
+                              <Icon className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold">{activity.title}</h3>
+                              <p className="text-gray-300 text-sm">{activity.duration} minutes</p>
+                              <Badge variant="outline" className="mt-1 text-xs border-white/30 text-gray-300">
+                                {activity.category}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {activity.completed && <CheckCircle className="w-6 h-6 text-green-400" />}
+                        </div>
+
+                        {/* Timer Display */}
+                        {activity.isActive && activity.timeRemaining > 0 && (
+                          <div className="mb-4 p-3 bg-blue-500/20 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <span className="text-blue-300 font-mono text-lg">
+                                {formatTime(activity.timeRemaining)}
+                              </span>
+                              <div className="flex space-x-2">
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    pauseActivity(activity.id)
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-400 text-blue-400 hover:bg-blue-500/20"
+                                >
+                                  {activity.isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                                </Button>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    stopActivity(activity.id)
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-400 text-red-400 hover:bg-red-500/20"
+                                >
+                                  <Square className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <Progress
+                              value={((activity.duration * 60 - activity.timeRemaining) / (activity.duration * 60)) * 100}
+                              className="h-2 mt-2"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Flame className="w-4 h-4 text-orange-400" />
+                            <span className="text-sm text-gray-300">{activity.streak} day streak</span>
+                          </div>
+
+                          {!activity.completed && !activity.isActive && (
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                startActivity(activity.id)
+                              }}
+                              size="sm"
+                              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                            >
+                              <Play className="w-4 h-4 mr-2" />
+                              Start
+                            </Button>
+                          )}
+
+                          {activity.completed && (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Completed</Badge>
+                          )}
+
+                          {activity.isActive && (
+                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                              {activity.isPaused ? "Paused" : "Active"}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </motion.div>
+
+          {/* Achievement Badges */}
+          {stats.badges.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mt-12"
+            >
+              <h2 className="text-2xl font-bold mb-6">Your Achievements</h2>
+              <div className="flex flex-wrap gap-4">
+                {stats.badges.map((badge, index) => (
+                  <Badge
+                    key={index}
+                    className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 px-4 py-2 text-base"
+                  >
+                    {getBadgeEmoji(badge)} {badge}
+                  </Badge>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Mini Games Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-12"
+          >
+            <Card className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border-white/20 text-white">
+              <CardContent className="p-6">
+                <MiniGames />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Activity Detail Modal */}
+          {showActivityDetail && selectedActivity && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <Card className="bg-gray-900 max-w-md w-full border-white/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-3 rounded-full bg-purple-500">
+                        <selectedActivity.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">{selectedActivity.title}</h3>
+                        <p className="text-gray-400">{selectedActivity.duration} minutes</p>
+                      </div>
+                    </div>
+                    <Button onClick={() => setShowActivityDetail(false)} variant="ghost" size="sm" className="text-white">
+                      ×
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4 text-white">
+                    <div>
+                      <h4 className="font-semibold mb-2">Description</h4>
+                      <p className="text-gray-300">{selectedActivity.description}</p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-2">Benefits</h4>
+                      <ul className="list-disc list-inside text-gray-300 space-y-1">
+                        {selectedActivity.benefits.map((benefit, index) => (
+                          <li key={index}>{benefit}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-white/20">
+                      <div className="flex items-center space-x-2">
+                        <Flame className="w-4 h-4 text-orange-400" />
+                        <span className="text-sm text-gray-300">{selectedActivity.streak} day streak</span>
+                      </div>
+
+                      {!selectedActivity.completed && !selectedActivity.isActive && (
+                        <Button
+                          onClick={() => {
+                            startActivity(selectedActivity.id)
+                            setShowActivityDetail(false)
+                          }}
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Start Activity
+                        </Button>
+                      )}
+
+                      {selectedActivity.completed && (
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Completed Today</Badge>
+                      )}
+
+                      {selectedActivity.isActive && (
+                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Currently Active</Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </RequireAuth>
   )
 }

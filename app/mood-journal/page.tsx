@@ -21,6 +21,7 @@ import {
   EyeOff,
 } from "lucide-react"
 import { useMood } from "@/contexts/mood-context"
+import RequireAuth from "@/components/require-auth"
 
 interface JournalEntry {
   id: string
@@ -299,336 +300,338 @@ export default function MoodJournalPage() {
   const stats = getStats()
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-[#222]`}>
-      <div className="container mx-auto px-6 py-8">
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl font-bold flex items-center">
-              <BookOpen className="w-10 h-10 mr-4 text-blue-400" />
-              Mood Journal
-            </h1>
-            <div className="text-right">
-              <div className="flex items-center text-lg font-mono mb-1">
-                <Clock className="w-5 h-5 mr-2 text-blue-300" />
-                {formatTime(currentTime)}
+    <RequireAuth>
+      <div className={`min-h-screen bg-gradient-to-br ${getMoodBackground(currentMood)} text-[#222]`}>
+        <div className="container mx-auto px-6 py-8">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-4xl font-bold flex items-center">
+                <BookOpen className="w-10 h-10 mr-4 text-blue-400" />
+                Mood Journal
+              </h1>
+              <div className="text-right">
+                <div className="flex items-center text-lg font-mono mb-1">
+                  <Clock className="w-5 h-5 mr-2 text-blue-300" />
+                  {formatTime(currentTime)}
+                </div>
+                <div className="text-sm text-black">{formatDate(currentTime)}</div>
               </div>
-              <div className="text-sm text-black">{formatDate(currentTime)}</div>
             </div>
-          </div>
-          <p className="text-black text-lg">Track your emotions and reflect on your daily experiences</p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2">
-            {/* New Entry Form */}
-            <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Plus className="w-5 h-5 mr-2 text-green-400" />
-                  New Journal Entry
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">How are you feeling?</label>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    {moodOptions.map((mood) => (
-                      <button
-                        key={mood.value}
-                        onClick={() => setNewEntry({ ...newEntry, mood: mood.value })}
-                        className={`p-3 rounded-lg border transition-all ${
-                          newEntry.mood === mood.value
-                            ? "border-white bg-white/20"
-                            : "border-white/30 hover:border-white/50 hover:bg-white/10"
-                        }`}
-                      >
-                        <div className="text-2xl mb-1">{mood.emoji}</div>
-                        <div className="text-xs">{mood.label}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">What's on your mind?</label>
-                  <Textarea
-                    value={newEntry.content}
-                    onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
-                    placeholder="Write about your day, thoughts, or feelings..."
-                    className="bg-white/10 border-white/30 text-white placeholder-gray-400 min-h-[100px]"
-                  />
-                </div>
-
-                <Button
-                  onClick={addEntry}
-                  disabled={!newEntry.mood || !newEntry.content.trim()}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Entry
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Journal Entries */}
-            <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
-              <CardHeader>
-                <CardTitle>Your Journal Entries</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {entries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-400 text-lg">No entries yet</p>
-                    <p className="text-gray-500 text-sm">Start by adding your first journal entry above</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {entries.map((entry) => (
-                      <motion.div
-                        key={entry.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-black/60 rounded-lg p-4 border border-white/10"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
-                            <div>
-                              <Badge className={`${getMoodColor(entry.mood)} text-white`}>
-                                {moodOptions.find((m) => m.value === entry.mood)?.label}
-                              </Badge>
-                              <p className="text-sm text-gray-400 mt-1">
-                                {new Date(entry.timestamp).toLocaleDateString()} at{" "}
-                                {new Date(entry.timestamp).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => startEdit(entry)}
-                              size="sm"
-                              variant="ghost"
-                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              onClick={() => deleteEntry(entry.id)}
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {editingEntry === entry.id ? (
-                          <div className="space-y-3">
-                            <Textarea
-                              value={editContent}
-                              onChange={(e) => setEditContent(e.target.value)}
-                              className="bg-white/10 border-white/30 text-white"
-                            />
-                            <div className="flex space-x-2">
-                              <Button
-                                onClick={() => saveEdit(entry.id)}
-                                size="sm"
-                                className="bg-green-500 hover:bg-green-600"
-                              >
-                                Save
-                              </Button>
-                              <Button onClick={cancelEdit} size="sm" variant="ghost" className="text-gray-400">
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-gray-200 leading-relaxed">{entry.content}</p>
-                        )}
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <p className="text-black text-lg">Track your emotions and reflect on your daily experiences</p>
           </motion.div>
 
-          {/* Sidebar */}
-          <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            {/* Calendar Widget */}
-            <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-purple-400" />
-                  Calendar
-                </CardTitle>
-                <Button
-                  onClick={() => setShowCalendar(!showCalendar)}
-                  size="sm"
-                  variant="ghost"
-                  className="text-gray-300 hover:text-white"
-                >
-                  {showCalendar ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
-              </CardHeader>
-              {showCalendar && (
-                <CardContent>
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <Button
-                        onClick={() => navigateMonth("prev")}
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-300 hover:text-white"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <h3 className="font-semibold">
-                        {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
-                      </h3>
-                      <Button
-                        onClick={() => navigateMonth("next")}
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-300 hover:text-white"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1 mb-2">
-                      {daysOfWeek.map((day) => (
-                        <div key={day} className="text-center text-xs font-medium text-gray-400 p-1">
-                          {day}
-                        </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2">
+              {/* New Entry Form */}
+              <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white mb-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Plus className="w-5 h-5 mr-2 text-green-400" />
+                    New Journal Entry
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">How are you feeling?</label>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                      {moodOptions.map((mood) => (
+                        <button
+                          key={mood.value}
+                          onClick={() => setNewEntry({ ...newEntry, mood: mood.value })}
+                          className={`p-3 rounded-lg border transition-all ${
+                            newEntry.mood === mood.value
+                              ? "border-white bg-white/20"
+                              : "border-white/30 hover:border-white/50 hover:bg-white/10"
+                          }`}
+                        >
+                          <div className="text-2xl mb-1">{mood.emoji}</div>
+                          <div className="text-xs">{mood.label}</div>
+                        </button>
                       ))}
                     </div>
-
-                    <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
                   </div>
 
-                  {selectedDate && (
-                    <div className="border-t border-white/20 pt-4">
-                      <h4 className="font-medium mb-2">
-                        {selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })}
-                      </h4>
-                      {getEntriesForDate(selectedDate).length > 0 ? (
-                        <div className="space-y-2">
-                          {getEntriesForDate(selectedDate).map((entry) => (
-                            <div key={entry.id} className="flex items-center space-x-2 text-sm">
-                              <span className="text-lg">{getMoodEmoji(entry.mood)}</span>
-                              <span className="text-gray-300 truncate">{entry.content.substring(0, 30)}...</span>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">What's on your mind?</label>
+                    <Textarea
+                      value={newEntry.content}
+                      onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
+                      placeholder="Write about your day, thoughts, or feelings..."
+                      className="bg-white/10 border-white/30 text-white placeholder-gray-400 min-h-[100px]"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={addEntry}
+                    disabled={!newEntry.mood || !newEntry.content.trim()}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Entry
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Journal Entries */}
+              <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
+                <CardHeader>
+                  <CardTitle>Your Journal Entries</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {entries.length === 0 ? (
+                    <div className="text-center py-8">
+                      <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-400 text-lg">No entries yet</p>
+                      <p className="text-gray-500 text-sm">Start by adding your first journal entry above</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {entries.map((entry) => (
+                        <motion.div
+                          key={entry.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-black/60 rounded-lg p-4 border border-white/10"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
+                              <div>
+                                <Badge className={`${getMoodColor(entry.mood)} text-white`}>
+                                  {moodOptions.find((m) => m.value === entry.mood)?.label}
+                                </Badge>
+                                <p className="text-sm text-gray-400 mt-1">
+                                  {new Date(entry.timestamp).toLocaleDateString()} at{" "}
+                                  {new Date(entry.timestamp).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-400 text-sm">No entries for this date</p>
-                      )}
+                            <div className="flex space-x-2">
+                              <Button
+                                onClick={() => startEdit(entry)}
+                                size="sm"
+                                variant="ghost"
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => deleteEntry(entry.id)}
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {editingEntry === entry.id ? (
+                            <div className="space-y-3">
+                              <Textarea
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className="bg-white/10 border-white/30 text-white"
+                              />
+                              <div className="flex space-x-2">
+                                <Button
+                                  onClick={() => saveEdit(entry.id)}
+                                  size="sm"
+                                  className="bg-green-500 hover:bg-green-600"
+                                >
+                                  Save
+                                </Button>
+                                <Button onClick={cancelEdit} size="sm" variant="ghost" className="text-gray-400">
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-200 leading-relaxed">{entry.content}</p>
+                          )}
+                        </motion.div>
+                      ))}
                     </div>
                   )}
                 </CardContent>
-              )}
-            </Card>
+              </Card>
+            </motion.div>
 
-            {/* Quick Stats */}
-            <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Quick Stats</CardTitle>
-                <Button
-                  onClick={() => setShowResetConfirm(true)}
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-300 hover:text-red-200 hover:bg-red-500/20"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-400">{stats.totalEntries}</p>
-                    <p className="text-sm text-gray-400">Total Entries</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-400">{stats.weeklyEntries}</p>
-                    <p className="text-sm text-gray-400">This Week</p>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-lg font-semibold mb-1">Most Common Mood</p>
-                  <div className="flex items-center justify-center space-x-2">
-                    <span className="text-2xl">{getMoodEmoji(stats.mostCommonMood)}</span>
-                    <span className="capitalize">{stats.mostCommonMood}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium mb-2">Mood Distribution</p>
-                  <div className="space-y-2">
-                    {Object.entries(stats.moodDistribution).map(([mood, count]) => {
-                      const percentage = stats.totalEntries > 0 ? (count / stats.totalEntries) * 100 : 0
-                      return (
-                        <div key={mood} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center space-x-2">
-                            <span>{getMoodEmoji(mood)}</span>
-                            <span className="capitalize">{mood}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-16 bg-white/20 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full ${getMoodColor(mood)}`}
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs text-gray-400 w-8">{count}</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Reset Confirmation */}
-            {showResetConfirm && (
-              <Card className="bg-red-500/10 backdrop-blur-lg border-red-500/20 text-white">
-                <CardContent className="p-4">
-                  <div className="flex items-start space-x-3">
-                    <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium mb-2">Reset Journal?</p>
-                      <p className="text-xs text-gray-300 mb-3">
-                        This will permanently delete all your journal entries and mood data.
-                      </p>
-                      <div className="flex space-x-2">
-                        <Button onClick={resetJournal} size="sm" className="bg-red-500 hover:bg-red-600 text-white">
-                          Reset
-                        </Button>
+            {/* Sidebar */}
+            <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+              {/* Calendar Widget */}
+              <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2 text-purple-400" />
+                    Calendar
+                  </CardTitle>
+                  <Button
+                    onClick={() => setShowCalendar(!showCalendar)}
+                    size="sm"
+                    variant="ghost"
+                    className="text-gray-300 hover:text-white"
+                  >
+                    {showCalendar ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </CardHeader>
+                {showCalendar && (
+                  <CardContent>
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-4">
                         <Button
-                          onClick={() => setShowResetConfirm(false)}
+                          onClick={() => navigateMonth("prev")}
                           size="sm"
                           variant="ghost"
-                          className="text-gray-300 hover:bg-white/10"
+                          className="text-gray-300 hover:text-white"
                         >
-                          Cancel
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <h3 className="font-semibold">
+                          {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
+                        </h3>
+                        <Button
+                          onClick={() => navigateMonth("next")}
+                          size="sm"
+                          variant="ghost"
+                          className="text-gray-300 hover:text-white"
+                        >
+                          <ChevronRight className="w-4 h-4" />
                         </Button>
                       </div>
+
+                      <div className="grid grid-cols-7 gap-1 mb-2">
+                        {daysOfWeek.map((day) => (
+                          <div key={day} className="text-center text-xs font-medium text-gray-400 p-1">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
+                    </div>
+
+                    {selectedDate && (
+                      <div className="border-t border-white/20 pt-4">
+                        <h4 className="font-medium mb-2">
+                          {selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })}
+                        </h4>
+                        {getEntriesForDate(selectedDate).length > 0 ? (
+                          <div className="space-y-2">
+                            {getEntriesForDate(selectedDate).map((entry) => (
+                              <div key={entry.id} className="flex items-center space-x-2 text-sm">
+                                <span className="text-lg">{getMoodEmoji(entry.mood)}</span>
+                                <span className="text-gray-300 truncate">{entry.content.substring(0, 30)}...</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">No entries for this date</p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Quick Stats */}
+              <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Quick Stats</CardTitle>
+                  <Button
+                    onClick={() => setShowResetConfirm(true)}
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-300 hover:text-red-200 hover:bg-red-500/20"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-400">{stats.totalEntries}</p>
+                      <p className="text-sm text-gray-400">Total Entries</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-green-400">{stats.weeklyEntries}</p>
+                      <p className="text-sm text-gray-400">This Week</p>
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-lg font-semibold mb-1">Most Common Mood</p>
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-2xl">{getMoodEmoji(stats.mostCommonMood)}</span>
+                      <span className="capitalize">{stats.mostCommonMood}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium mb-2">Mood Distribution</p>
+                    <div className="space-y-2">
+                      {Object.entries(stats.moodDistribution).map(([mood, count]) => {
+                        const percentage = stats.totalEntries > 0 ? (count / stats.totalEntries) * 100 : 0
+                        return (
+                          <div key={mood} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center space-x-2">
+                              <span>{getMoodEmoji(mood)}</span>
+                              <span className="capitalize">{mood}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-16 bg-white/20 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full ${getMoodColor(mood)}`}
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs text-gray-400 w-8">{count}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </motion.div>
+
+              {/* Reset Confirmation */}
+              {showResetConfirm && (
+                <Card className="bg-red-500/10 backdrop-blur-lg border-red-500/20 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-2">Reset Journal?</p>
+                        <p className="text-xs text-gray-300 mb-3">
+                          This will permanently delete all your journal entries and mood data.
+                        </p>
+                        <div className="flex space-x-2">
+                          <Button onClick={resetJournal} size="sm" className="bg-red-500 hover:bg-red-600 text-white">
+                            Reset
+                          </Button>
+                          <Button
+                            onClick={() => setShowResetConfirm(false)}
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-300 hover:bg-white/10"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </motion.div>
+          </div>
         </div>
       </div>
-    </div>
+    </RequireAuth>
   )
 }

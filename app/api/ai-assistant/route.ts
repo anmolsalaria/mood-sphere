@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Gemini API key not set." }, { status: 500 });
   }
 
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+  const url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-002:generateContent";
   const payload = {
     contents: [
       {
