@@ -22,6 +22,15 @@ import {
 } from "lucide-react"
 import { useMood } from "@/contexts/mood-context"
 import RequireAuth from "@/components/require-auth"
+import { db } from "@/lib/firebase"
+import {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+} from "firebase/firestore"
 
 interface CommunityPost {
   id: number
@@ -36,48 +45,6 @@ interface CommunityPost {
   timestamp: number
   liked?: boolean
 }
-
-const initialPosts: CommunityPost[] = [
-  {
-    id: 1,
-    author: "Anonymous Butterfly",
-    avatar: "🦋",
-    time: "2 hours ago",
-    content:
-      "Had a panic attack today but used the breathing exercises from the app. Feeling much better now. Thank you to this amazing community for always being here! 💙",
-    likes: 24,
-    replies: 8,
-    mood: "grateful",
-    tags: ["anxiety", "breathing", "support"],
-    timestamp: Date.now() - 2 * 60 * 60 * 1000,
-  },
-  {
-    id: 2,
-    author: "Peaceful Owl",
-    avatar: "🦉",
-    time: "4 hours ago",
-    content:
-      "Week 3 of my meditation journey! Started with just 2 minutes and now I can do 15 minutes easily. Small steps really do make a big difference.",
-    likes: 31,
-    replies: 12,
-    mood: "proud",
-    tags: ["meditation", "progress", "mindfulness"],
-    timestamp: Date.now() - 4 * 60 * 60 * 1000,
-  },
-  {
-    id: 3,
-    author: "Gentle Wave",
-    avatar: "🌊",
-    time: "6 hours ago",
-    content:
-      "Reminder: It's okay to have bad days. You're not broken, you're human. Tomorrow is a new opportunity to try again. Sending love to everyone who needs it today. ✨",
-    likes: 47,
-    replies: 15,
-    mood: "supportive",
-    tags: ["encouragement", "self-compassion", "love"],
-    timestamp: Date.now() - 6 * 60 * 60 * 1000,
-  },
-]
 
 const anonymousNames = [
   "Gentle Butterfly",
@@ -107,10 +74,10 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [stats, setStats] = useState({
-    activeMembers: 2847,
-    postsToday: 156,
-    supportGiven: 1203,
-    heartsShared: 4521,
+    activeMembers: 0,
+    postsToday: 0,
+    supportGiven: 0,
+    heartsShared: 0,
   })
 
   const moods = [
@@ -122,37 +89,49 @@ export default function CommunityPage() {
     { id: "calm", emoji: "😌", label: "Calm", color: "from-teal-500 to-cyan-500" },
   ]
 
-  // Load posts from localStorage on component mount
+  // Load posts from Firestore on component mount
   useEffect(() => {
-    const loadPosts = () => {
-      setLoading(true)
-      try {
-        const savedPosts = localStorage.getItem("communityPosts")
-        if (savedPosts) {
-          const parsedPosts = JSON.parse(savedPosts)
-          setPosts(parsedPosts)
-        } else {
-          setPosts(initialPosts)
-          localStorage.setItem("communityPosts", JSON.stringify(initialPosts))
+    // Listen for real-time updates from Firestore
+    const q = query(collection(db, "communityPosts"), orderBy("timestamp", "desc"))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loadedPosts = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        let idNum = Number(doc.id);
+        if (isNaN(idNum)) {
+          idNum = data.timestamp || Date.now();
         }
-      } catch (error) {
-        console.error("Error loading posts:", error)
-        setPosts(initialPosts)
-      }
-      setLoading(false)
-    }
-
-    loadPosts()
+        return {
+          id: idNum,
+          author: data.author || "Anonymous",
+          avatar: data.avatar || "🦋",
+          time: data.time || "",
+          content: data.content || "",
+          likes: data.likes || 0,
+          replies: data.replies || 0,
+          mood: data.mood || "supportive",
+          tags: data.tags || [],
+          timestamp: data.timestamp || 0,
+          liked: data.liked || false,
+        };
+      });
+      setPosts(
+        loadedPosts.filter(
+          (post: any) =>
+            ![
+              "Gentle Wave",
+              "Peaceful Owl",
+              "Anonymous Butterfly",
+            ].includes(post.author) &&
+            post.content !==
+              "Reminder: It's okay to have bad days. You're not broken, you're human. Tomorrow is a new opportunity to try again. Sending love to everyone who needs it today. ✨"
+        )
+      );
+      setLoading(false);
+    })
+    return () => unsubscribe()
   }, [])
 
-  // Save posts to localStorage whenever posts change
-  useEffect(() => {
-    if (posts.length > 0) {
-      localStorage.setItem("communityPosts", JSON.stringify(posts))
-    }
-  }, [posts])
-
-  // Update stats based on posts
+  // Update stats only based on real user interaction (e.g., when a post is added, liked, etc.)
   useEffect(() => {
     const totalLikes = posts.reduce((sum, post) => sum + post.likes, 0)
     const todaysPosts = posts.filter((post) => {
@@ -181,13 +160,11 @@ export default function CommunityPage() {
     return `${days} days ago`
   }
 
-  const handleSharePost = () => {
+  const handleSharePost = async () => {
     if (newPost.trim()) {
       const randomName = anonymousNames[Math.floor(Math.random() * anonymousNames.length)]
       const randomAvatar = anonymousAvatars[Math.floor(Math.random() * anonymousAvatars.length)]
-
-      const post: CommunityPost = {
-        id: Date.now(),
+      const post = {
         author: randomName,
         avatar: randomAvatar,
         time: "Just now",
@@ -198,13 +175,15 @@ export default function CommunityPage() {
         tags: ["new-post"],
         timestamp: Date.now(),
         liked: false,
+        createdAt: serverTimestamp(),
       }
-
-      setPosts((prev) => [post, ...prev])
-      setNewPost("")
-
-      // Show success message
-      showSuccessMessage("Your post has been shared anonymously! 💙")
+      try {
+        await addDoc(collection(db, "communityPosts"), post)
+        setNewPost("")
+        showSuccessMessage("Your post has been shared anonymously! 💙")
+      } catch (error) {
+        showSuccessMessage("Failed to share post. Please try again.")
+      }
     }
   }
 
@@ -236,7 +215,7 @@ export default function CommunityPage() {
       // Reset all community data
       setPosts([])
       setStats({
-        activeMembers: 2847,
+        activeMembers: 0,
         postsToday: 0,
         supportGiven: 0,
         heartsShared: 0,
@@ -247,20 +226,6 @@ export default function CommunityPage() {
     } else {
       setShowResetConfirm(true)
     }
-  }
-
-  const refreshPosts = () => {
-    setLoading(true)
-    // Simulate loading
-    setTimeout(() => {
-      setStats((prev) => ({
-        activeMembers: prev.activeMembers + Math.floor(Math.random() * 10),
-        postsToday: prev.postsToday,
-        supportGiven: prev.supportGiven + Math.floor(Math.random() * 5),
-        heartsShared: prev.heartsShared,
-      }))
-      setLoading(false)
-    }, 1000)
   }
 
   const showSuccessMessage = (message: string) => {
@@ -350,13 +315,6 @@ export default function CommunityPage() {
                 <p className="text-black text-lg">A safe space for anonymous support and encouragement</p>
               </div>
               <div className="flex space-x-3">
-                <Button
-                  onClick={refreshPosts}
-                  className="bg-white/10 hover:bg-white/20 backdrop-blur-lg border border-black text-black"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh
-                </Button>
                 <Button
                   onClick={handleResetCommunity}
                   className={`backdrop-blur-lg border transition-all ${
@@ -588,52 +546,61 @@ export default function CommunityPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span>Active Members</span>
-                      <span className="font-bold text-purple-400">{stats.activeMembers.toLocaleString()}</span>
+                  {posts.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <span>Active Members</span>
+                        <span className="font-bold text-purple-400">{stats.activeMembers.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Posts Today</span>
+                        <span className="font-bold text-blue-400">{stats.postsToday}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Support Given</span>
+                        <span className="font-bold text-green-400">{stats.supportGiven.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Hearts Shared</span>
+                        <span className="font-bold text-pink-400">{stats.heartsShared.toLocaleString()}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Posts Today</span>
-                      <span className="font-bold text-blue-400">{stats.postsToday}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Support Given</span>
-                      <span className="font-bold text-green-400">{stats.supportGiven.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Hearts Shared</span>
-                      <span className="font-bold text-pink-400">{stats.heartsShared.toLocaleString()}</span>
-                    </div>
-                  </div>
+                  ) : (
+                    <div className="text-gray-400 text-sm text-center py-4">No community stats yet</div>
+                  )}
                 </CardContent>
               </Card>
 
               <Card className="bg-black/60 backdrop-blur-lg border-white/20 text-white">
                 <CardHeader>
-                  <CardTitle>Trending Topics</CardTitle>
+                  <CardTitle>Mental Health Support</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {getTrendingTags().length > 0 ? (
-                      getTrendingTags().map((tag, index) => {
-                        const colors = [
-                          "bg-purple-500/20 text-purple-300 border-purple-500/30",
-                          "bg-blue-500/20 text-blue-300 border-blue-500/30",
-                          "bg-green-500/20 text-green-300 border-green-500/30",
-                          "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-                          "bg-pink-500/20 text-pink-300 border-pink-500/30",
-                          "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-                        ]
-                        return (
-                          <Badge key={tag} className={`w-full justify-start ${colors[index % colors.length]}`}>
-                            #{tag}
-                          </Badge>
-                        )
-                      })
-                    ) : (
-                      <p className="text-gray-400 text-sm text-center py-4">No trending topics yet</p>
-                    )}
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <span className="font-semibold">KIRAN Mental Health Helpline</span><br />
+                      Toll-Free: <span className="font-mono">1800-599-0019</span><br />
+                      <span className="text-gray-300">Available 24/7, this helpline provides immediate support for people facing mental health issues, including depression and anxiety.</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold">VISHWAS Mental Health Helpline (NIMHANS Bengaluru)</span><br />
+                      Phone: <span className="font-mono">080-4611-0007</span><br />
+                      <span className="text-gray-300">Operated by NIMHANS, this helpline offers counseling and mental health support, including for depression.</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold">AASRA Suicide Prevention Helpline</span><br />
+                      Phone: <span className="font-mono">91-22-2754-6669</span><br />
+                      <span className="text-gray-300">A dedicated helpline offering support for people dealing with suicidal thoughts and severe depression.</span>
+                    </div>
+                    <div>
+                      <a href="https://www.vandrevalafoundation.com/free-counseling" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">Vandrevala Foundation Free Counseling</a>
+                    </div>
+                    <div>
+                      <a href="https://www.thelivelovelaughfoundation.org/find-help/helplines" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">Live Love Laugh Foundation Helplines</a>
+                    </div>
+                    <div>
+                      <a href="https://www.nimh.nih.gov/health/find-help" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">NIMH Mental Health Support</a>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 import { useMood } from "@/contexts/mood-context"
 import RequireAuth from "@/components/require-auth"
+import { db } from "@/lib/firebase"
+import { collection, doc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from "firebase/firestore"
 
 interface JournalEntry {
   id: string
@@ -75,6 +77,7 @@ export default function MoodJournalPage() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [calendarDate, setCalendarDate] = useState(new Date())
+  const [userId, setUserId] = useState<string | null>(null)
 
   // Update time every second
   useEffect(() => {
@@ -85,70 +88,75 @@ export default function MoodJournalPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Load entries from localStorage
+  // Get user ID from localStorage
   useEffect(() => {
-    const savedEntries = localStorage.getItem("moodJournalEntries")
-    if (savedEntries) {
+    const user = typeof window !== "undefined" ? localStorage.getItem("moodsphere_user") : null;
+    if (user) {
       try {
-        const parsedEntries = JSON.parse(savedEntries)
-        setEntries(parsedEntries)
-      } catch (error) {
-        console.error("Error loading journal entries:", error)
-      }
+        const parsed = JSON.parse(user);
+        setUserId(parsed.id);
+      } catch {}
     }
-  }, [])
+  }, []);
 
-  // Save entries to localStorage
+  // Listen for real-time updates from Firestore
   useEffect(() => {
-    localStorage.setItem("moodJournalEntries", JSON.stringify(entries))
-  }, [entries])
+    if (!userId) return;
+    const entriesRef = collection(db, "users", userId, "moodJournalEntries");
+    const q = query(entriesRef, orderBy("timestamp", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loadedEntries = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+      setEntries(loadedEntries as JournalEntry[]);
+    });
+    return () => unsubscribe();
+  }, [userId]);
 
-  const addEntry = () => {
-    if (newEntry.mood && newEntry.content.trim()) {
-      const entry: JournalEntry = {
-        id: Date.now().toString(),
+  const addEntry = async () => {
+    if (newEntry.mood && newEntry.content.trim() && userId) {
+      const entry: Omit<JournalEntry, "id"> = {
         mood: newEntry.mood,
         content: newEntry.content.trim(),
         date: new Date().toISOString().split("T")[0],
         timestamp: Date.now(),
-      }
-
-      setEntries((prev) => [entry, ...prev])
-      setNewEntry({ mood: "", content: "" })
+      };
+      await addDoc(collection(db, "users", userId, "moodJournalEntries"), entry);
+      setNewEntry({ mood: "", content: "" });
     }
-  }
+  };
 
-  const deleteEntry = (id: string) => {
-    if (confirm("Are you sure you want to delete this entry?")) {
-      setEntries((prev) => prev.filter((entry) => entry.id !== id))
+  const deleteEntry = async (id: string) => {
+    if (confirm("Are you sure you want to delete this entry?") && userId) {
+      await deleteDoc(doc(db, "users", userId, "moodJournalEntries", id));
     }
-  }
+  };
 
   const startEdit = (entry: JournalEntry) => {
     setEditingEntry(entry.id)
     setEditContent(entry.content)
   }
 
-  const saveEdit = (id: string) => {
-    if (editContent.trim()) {
-      setEntries((prev) => prev.map((entry) => (entry.id === id ? { ...entry, content: editContent.trim() } : entry)))
-      setEditingEntry(null)
-      setEditContent("")
+  const saveEdit = async (id: string) => {
+    if (editContent.trim() && userId) {
+      await updateDoc(doc(db, "users", userId, "moodJournalEntries", id), { content: editContent.trim() });
+      setEditingEntry(null);
+      setEditContent("");
     }
-  }
+  };
 
   const cancelEdit = () => {
     setEditingEntry(null)
     setEditContent("")
   }
 
-  const resetJournal = () => {
-    if (confirm("Are you sure you want to delete all journal entries? This action cannot be undone.")) {
-      setEntries([])
-      setShowResetConfirm(false)
-      localStorage.removeItem("moodJournalEntries")
+  const resetJournal = async () => {
+    if (confirm("Are you sure you want to delete all journal entries? This action cannot be undone.") && userId) {
+      const q = await getDocs(collection(db, "users", userId, "moodJournalEntries"));
+      const batchDeletes = q.docs.map((d) => deleteDoc(d.ref));
+      await Promise.all(batchDeletes);
+      setEntries([]);
+      setShowResetConfirm(false);
     }
-  }
+  };
 
   const getMoodEmoji = (mood: string) => {
     const moodOption = moodOptions.find((option) => option.value === mood)

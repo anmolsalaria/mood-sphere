@@ -20,6 +20,8 @@ import {
 import { useMood } from "@/contexts/mood-context"
 import { useEffect, useState } from "react"
 import RequireAuth from "@/components/require-auth"
+import { db } from "@/lib/firebase"
+import { doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, getDocs, deleteDoc } from "firebase/firestore"
 
 interface JournalEntry {
   id: string
@@ -80,7 +82,6 @@ const moodEmojis = {
 
 export default function InsightsPage() {
   const { currentMood, getMoodBackground } = useMood()
-  // Store journal and activity data in state for persistence
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
   const [activityProgress, setActivityProgress] = useState<ActivityProgress>({})
   const [insightData, setInsightData] = useState<InsightData>({
@@ -96,104 +97,168 @@ export default function InsightsPage() {
     averageSessionTime: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
 
-  // Load data from localStorage
-  const loadInsightData = () => {
-    setIsLoading(true)
-    const loadedJournal: JournalEntry[] = JSON.parse(localStorage.getItem("moodJournalEntries") || "[]")
-    const loadedActivity: ActivityProgress = JSON.parse(localStorage.getItem("selfCareProgress") || "{}")
-    setJournalEntries(loadedJournal)
-    setActivityProgress(loadedActivity)
+  useEffect(() => {
+    // Get user ID from localStorage
+    const user = typeof window !== "undefined" ? localStorage.getItem("moodsphere_user") : null;
+    if (user) {
+      try {
+        const parsed = JSON.parse(user);
+        setUserId(parsed.id);
+      } catch {}
+    }
+  }, []);
 
-    // Calculate journal insights (existing logic, but use loadedJournal/loadedActivity)
-    const now = new Date()
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-    const weeklyEntries = loadedJournal.filter((entry) => new Date(entry.date) >= oneWeekAgo).length
-    const moodDistribution: { [key: string]: number } = {}
-    loadedJournal.forEach((entry) => {
-      moodDistribution[entry.mood] = (moodDistribution[entry.mood] || 0) + 1
-    })
-    let currentStreak = 0
-    let longestStreak = 0
-    let tempStreak = 0
-    const sortedEntries = loadedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    const uniqueDates = [...new Set(sortedEntries.map((entry) => entry.date.split("T")[0]))]
+  // Load data from Firestore
+  useEffect(() => {
+    if (!userId) return;
+    // Listen for journal entries
+    const entriesRef = collection(db, "users", userId, "moodJournalEntries");
+    const q = query(entriesRef, orderBy("timestamp", "desc"));
+    const unsubscribeEntries = onSnapshot(q, (snapshot) => {
+      const loadedJournal = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+      setJournalEntries(loadedJournal as JournalEntry[]);
+    });
+    // Listen for activity progress and insights
+    const userDocRef = doc(db, "users", userId);
+    const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setActivityProgress(data.activityProgress || {});
+        setInsightData((prev) => ({ ...prev, ...(data.insightData || {}) }));
+      }
+      setIsLoading(false);
+    });
+    return () => {
+      unsubscribeEntries();
+      unsubscribeUser();
+    };
+  }, [userId]);
+
+  // Save data to Firestore whenever it changes
+  useEffect(() => {
+    if (!isLoading && userId) {
+      setDoc(doc(db, "users", userId), {
+        activityProgress,
+        insightData,
+      }, { merge: true });
+    }
+  }, [isLoading, userId, activityProgress, insightData]);
+
+  // Recalculate insights whenever journalEntries or activityProgress changes
+  useEffect(() => {
+    if (isLoading) return;
+    // Calculate journal insights
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyEntries = journalEntries.filter((entry) => new Date(entry.date) >= oneWeekAgo).length;
+    const moodDistribution: { [key: string]: number } = {};
+    journalEntries.forEach((entry) => {
+      moodDistribution[entry.mood] = (moodDistribution[entry.mood] || 0) + 1;
+    });
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    const sortedEntries = [...journalEntries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const uniqueDates = [...new Set(sortedEntries.map((entry) => entry.date.split("T")[0]))];
     for (let i = 0; i < uniqueDates.length; i++) {
-      const currentDate = new Date(uniqueDates[i])
-      const expectedDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+      const currentDate = new Date(uniqueDates[i]);
+      const expectedDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       if (currentDate.toDateString() === expectedDate.toDateString()) {
-        tempStreak++
-        if (i === 0) currentStreak = tempStreak
+        tempStreak++;
+        if (i === 0) currentStreak = tempStreak;
       } else {
-        longestStreak = Math.max(longestStreak, tempStreak)
-        tempStreak = 0
-        break
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 0;
+        break;
       }
     }
-    longestStreak = Math.max(longestStreak, tempStreak)
-    const weeklyMoodData = []
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    longestStreak = Math.max(longestStreak, tempStreak);
+    const weeklyMoodData = [];
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-      const dayEntries = loadedJournal.filter((entry) => new Date(entry.date).toDateString() === date.toDateString())
-      const dayMoods = { happy: 0, calm: 0, anxious: 0, stressed: 0, sad: 0, neutral: 0 }
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayEntries = journalEntries.filter((entry) => new Date(entry.date).toDateString() === date.toDateString());
+      const dayMoods = { happy: 0, calm: 0, anxious: 0, stressed: 0, sad: 0, neutral: 0 };
       dayEntries.forEach((entry) => {
         if (dayMoods.hasOwnProperty(entry.mood)) {
-          dayMoods[entry.mood as keyof typeof dayMoods]++
+          dayMoods[entry.mood as keyof typeof dayMoods]++;
         }
-      })
+      });
       weeklyMoodData.push({
         day: days[date.getDay()],
         ...dayMoods,
-      })
+      });
     }
-    const totalActivities = Object.keys(loadedActivity).length
-    const completedToday = Object.values(loadedActivity).filter(
+    const totalActivities = Object.keys(activityProgress).length;
+    const completedToday = Object.values(activityProgress).filter(
       (activity) => activity.completed && activity.lastCompleted === new Date().toDateString(),
-    ).length
-    const totalTime = Object.values(loadedActivity).reduce((sum, activity) => sum + (activity.totalTime || 0), 0)
-    const totalSessions = Object.values(loadedActivity).reduce(
+    ).length;
+    const totalTime = Object.values(activityProgress).reduce((sum, activity) => sum + (activity.totalTime || 0), 0);
+    const totalSessions = Object.values(activityProgress).reduce(
       (sum, activity) => sum + (activity.totalSessions || 0),
       0,
-    )
-    const averageSessionTime = totalSessions > 0 ? Math.round(totalTime / totalSessions) : 0
-    setInsightData({
-      totalEntries: loadedJournal.length,
+    );
+    const averageSessionTime = totalSessions > 0 ? Math.round(totalTime / totalSessions) : 0;
+    const newInsights: InsightData = {
+      totalEntries: journalEntries.length,
       weeklyEntries,
       currentStreak,
       longestStreak,
       moodDistribution,
       weeklyMoodData,
-      activityStats: loadedActivity,
+      activityStats: activityProgress,
       totalActivities,
       completedToday,
       averageSessionTime,
-    })
-    setIsLoading(false)
-  }
-
-  useEffect(() => {
-    loadInsightData()
-  }, [])
-
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem("moodJournalEntries", JSON.stringify(journalEntries))
-      localStorage.setItem("selfCareProgress", JSON.stringify(activityProgress))
+    };
+    setInsightData(newInsights);
+    // Persist to Firestore
+    if (userId) {
+      setDoc(doc(db, "users", userId), { insightData: newInsights }, { merge: true });
     }
-  }, [isLoading, journalEntries, activityProgress])
+  }, [journalEntries, activityProgress, isLoading, userId]);
 
   // Add a Reset button to clear all data
-  const handleReset = () => {
-    if (window.confirm("Are you sure you want to reset all insights and progress? This cannot be undone.")) {
-      localStorage.removeItem("moodJournalEntries")
-      localStorage.removeItem("selfCareProgress")
-      setJournalEntries([])
-      setActivityProgress({})
-      loadInsightData()
+  const handleReset = async () => {
+    if (window.confirm("Are you sure you want to reset all insights and progress? This cannot be undone.") && userId) {
+      // Remove all journal entries
+      const q = await getDocs(collection(db, "users", userId, "moodJournalEntries"));
+      const batchDeletes: Promise<void>[] = q.docs.map((d: any) => deleteDoc(d.ref));
+      await Promise.all(batchDeletes);
+      // Reset user doc
+      await setDoc(doc(db, "users", userId), {
+        activityProgress: {},
+        insightData: {
+          totalEntries: 0,
+          weeklyEntries: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          moodDistribution: {},
+          weeklyMoodData: [],
+          activityStats: {},
+          totalActivities: 0,
+          completedToday: 0,
+          averageSessionTime: 0,
+        },
+      }, { merge: true });
+      setJournalEntries([]);
+      setActivityProgress({});
+      setInsightData({
+        totalEntries: 0,
+        weeklyEntries: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        moodDistribution: {},
+        weeklyMoodData: [],
+        activityStats: {},
+        totalActivities: 0,
+        completedToday: 0,
+        averageSessionTime: 0,
+      });
     }
-  }
+  };
 
   const getMostCommonMood = () => {
     const moods = Object.entries(insightData.moodDistribution)
@@ -204,7 +269,7 @@ export default function InsightsPage() {
   const getImprovementPercentage = () => {
     const positiveCount = (insightData.moodDistribution.happy || 0) + (insightData.moodDistribution.calm || 0)
     const totalCount = Object.values(insightData.moodDistribution).reduce((sum, count) => sum + count, 0)
-    return totalCount > 0 ? Math.round((positiveCount / totalCount) * 100) : 0
+    return totalCount > 0 ? Math.round((Number(positiveCount) / Number(totalCount)) * 100) : 0
   }
 
   const getActivityStreak = () => {
@@ -241,17 +306,9 @@ export default function InsightsPage() {
                 <p className="text-black text-lg">Track your mental wellness journey with personalized insights</p>
               </div>
               <Button
-                onClick={loadInsightData}
-                variant="outline"
-                className="bg-white/10 border-black text-black hover:bg-white/20"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh Data
-              </Button>
-              <Button
                 onClick={handleReset}
                 variant="outline"
-                className="bg-white/10 border-black text-black hover:bg-white/20 ml-4"
+                className="bg-white/10 border-black text-black hover:bg-white/20"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Reset Insights
@@ -398,7 +455,7 @@ export default function InsightsPage() {
                   {Object.keys(insightData.moodDistribution).length > 0 ? (
                     <div className="space-y-4">
                       {Object.entries(insightData.moodDistribution)
-                        .sort(([, a], [, b]) => b - a)
+                        .sort(([, a,], [, b,]) => Number(b) - Number(a))
                         .map(([mood, count]) => {
                           const percentage = Math.round((count / insightData.totalEntries) * 100)
                           return (
